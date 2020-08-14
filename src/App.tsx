@@ -4,7 +4,6 @@ import "./App.css";
 import { TetrisGame } from "./TetrisGame";
 import styled from "styled-components";
 import { Color } from "./Types";
-import io from "socket.io-client";
 
 const MainBox = styled.div`
   display: flex;
@@ -16,14 +15,6 @@ const MainBox = styled.div`
 `;
 
 function App() {
-  useEffect(() => {
-    let socket = io("/");
-    socket.on("connect", () => {
-      console.log("Connected!");
-      socket.send("Hello");
-    });
-  }, []);
-
   return (
     <div className="App">
       <header className="App-header">

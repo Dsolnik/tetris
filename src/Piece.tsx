@@ -294,6 +294,7 @@ export class PieceGenerator {
 }
 
 export function fix_piece_on_board(piece: Piece, board: Board): Board {
+  console.log("fixing piece", piece, "on board", board);
   let new_board = board;
   piece.get_locations().forEach((loc) => {
     new_board = set_cell(loc[0], loc[1], new_board, piece.color);

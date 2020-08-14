@@ -16,12 +16,14 @@ import {
 } from "./utils";
 import { TetrisStats } from "./TetrisStats";
 import { assert } from "console";
+import io from "socket.io-client";
 
 interface TetrisGameProps {
   background_color: Color;
   empty_cell_color: Color;
 }
 
+// This is pretty much the reducer pattern in redux.
 type operation =
   | "NEW_GAME"
   | "PIECE_DOWN"
@@ -37,7 +39,7 @@ type operation =
   | "CLEAR_LINE"
   | "GAME_OVER";
 
-type action = {
+type Action = {
   op: operation;
   data?: number;
 };
@@ -56,6 +58,22 @@ export const TetrisGame = (props: TetrisGameProps) => {
   let [linesCleared, setLinesCleared] = useState(0);
   let [level, setLevel] = useState(0);
   let [game_in_progress, set_game_in_progress] = useState(true);
+  let [socket, setSocket] = useState(io("ws://localhost:3000"));
+
+  useEffect(() => {
+    socket.on("connect", () => {
+      console.log("Connected YEEEE!");
+      socket.send("Hello");
+    });
+  }, []);
+
+  useEffect(() => {
+    socket.off("message_recieved");
+    socket.on("message_recieved", (data: any) => {
+      console.log("Recieved data", data);
+      execute_action(data);
+    });
+  }, [piece]);
 
   let new_game = () => {
     setBoard(create_board(row_count, 10, empty_cell));
@@ -66,10 +84,13 @@ export const TetrisGame = (props: TetrisGameProps) => {
     set_game_in_progress(true);
   };
 
-  let send_action = (act: action) => execute_action(act);
+  let send_action = (act: Action) => {
+    console.log("Emitting Action", act);
+    socket.emit("message_sent", act);
+  };
 
-  let execute_action = (act: action) => {
-    console.log("Executing action", act);
+  let execute_action = (act: Action) => {
+    console.log("EXECING Action", act);
     switch (act.op) {
       case "NEW_GAME":
         new_game();
@@ -164,6 +185,7 @@ export const TetrisGame = (props: TetrisGameProps) => {
 
   useInterval(() => {
     if (!game_in_progress) return;
+    console.log(piece);
     if (piece.can_move(board, empty_cell, 0, 1)) {
       send_action({ op: "PIECE_DOWN" });
     } else {
@@ -172,11 +194,12 @@ export const TetrisGame = (props: TetrisGameProps) => {
       let num_rows_cleared = clear_rows(new_board);
       increment_score_after_lines_cleared(num_rows_cleared);
 
+      // setTimeout(() => {
       let new_piece_index = generator.get_random_piece_index();
       let new_piece = generator.get_piece_i(new_piece_index);
       send_action({ op: "NEW_PIECE", data: new_piece_index });
-
       check_game_over(new_piece);
+      // }, 500);
     }
   }, 1000);
 
@@ -189,7 +212,6 @@ export const TetrisGame = (props: TetrisGameProps) => {
         send_action({ op: "PIECE_LEFT" });
       } else if (event.key == "ArrowUp") {
         send_action({ op: "ROTATE_CLOCKWISE" });
-        setPiece(piece.try_rotate_clockwise(board, empty_cell));
       } else if (event.key == "ArrowDown") {
         send_action({ op: "ROTATE_COUNTER_CLOCKWISE" });
       } else if (event.key == " ") {
