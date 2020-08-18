@@ -16,11 +16,12 @@ import {
 } from "./utils";
 import { TetrisStats } from "./TetrisStats";
 import { assert } from "console";
-import io from "socket.io-client";
 
 interface TetrisGameProps {
   background_color: Color;
   empty_cell_color: Color;
+  socket: SocketIOClient.Socket;
+  host: boolean;
 }
 
 // This is pretty much the reducer pattern in redux.
@@ -45,6 +46,7 @@ type Action = {
 };
 
 export const TetrisGame = (props: TetrisGameProps) => {
+  let { socket, host } = props;
   let default_color = props.background_color;
   let empty_cell = props.empty_cell_color;
   let row_count = 22;
@@ -57,15 +59,14 @@ export const TetrisGame = (props: TetrisGameProps) => {
   let [score, setScore] = useState(0);
   let [linesCleared, setLinesCleared] = useState(0);
   let [level, setLevel] = useState(0);
+  let [startOfGame, setStartOfGame] = useState(true);
   let [game_in_progress, set_game_in_progress] = useState(true);
-  let [socket, setSocket] = useState(io("ws://localhost:3000"));
 
-  useEffect(() => {
-    socket.on("connect", () => {
-      console.log("Connected YEEEE!");
-      socket.send("Hello");
-    });
-  }, []);
+  function reset_piece() {
+    let new_piece_index = generator.get_random_piece_index();
+    send_action({ op: "NEW_PIECE", data: new_piece_index });
+    console.log("SETTING NEW PEICE!!!");
+  }
 
   useEffect(() => {
     socket.off("message_recieved");
@@ -75,9 +76,15 @@ export const TetrisGame = (props: TetrisGameProps) => {
     });
   }, [piece]);
 
+  useEffect(() => {
+    if (host) reset_piece();
+  }, [host]);
+
   let new_game = () => {
     setBoard(create_board(row_count, 10, empty_cell));
-    setPiece(generator.get_random_new_piece());
+    if (host) {
+      reset_piece();
+    }
     setScore(0);
     setLinesCleared(0);
     setLevel(0);
@@ -184,7 +191,7 @@ export const TetrisGame = (props: TetrisGameProps) => {
   };
 
   useInterval(() => {
-    if (!game_in_progress) return;
+    if (!game_in_progress || !host) return;
     console.log(piece);
     if (piece.can_move(board, empty_cell, 0, 1)) {
       send_action({ op: "PIECE_DOWN" });

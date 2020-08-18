@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from "react";
 import logo from "./logo.svg";
 import "./App.css";
-import { TetrisGame } from "./TetrisGame";
 import styled from "styled-components";
 import { Color } from "./Types";
+import { RoomCover } from "./RoomCover";
+import io from "socket.io-client";
+
+import "bootstrap/dist/css/bootstrap.min.css";
 
 const MainBox = styled.div`
   display: flex;
@@ -15,15 +18,19 @@ const MainBox = styled.div`
 `;
 
 function App() {
+  let [socket, setSocket] = useState(io("ws://localhost:3000"));
+
+  useEffect(() => {
+    socket.on("connect", () => {
+      console.log("Connected YEEEE!");
+      socket.send("Hello");
+    });
+  }, []);
+
   return (
     <div className="App">
       <header className="App-header">
-        <MainBox>
-          <TetrisGame
-            background_color={{ red: 100, green: 100, blue: 100 }}
-            empty_cell_color={{ red: 220, green: 220, blue: 220 }}
-          />
-        </MainBox>
+        <RoomCover socket={socket}></RoomCover>
       </header>
     </div>
   );
