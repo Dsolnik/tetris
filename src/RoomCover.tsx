@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import styled from "styled-components";
 import Button from "react-bootstrap/Button";
 import _ from "lodash";
@@ -40,28 +40,43 @@ export const RoomCover: React.FunctionComponent<RoomCoverProps> = (props) => {
   let { socket } = props;
   let [started, setStarted] = useState(false);
   let [ready, setReady] = useState(false);
-  let [roles, setRoles] = useState(new Map<string, boolean>());
-  let [ourName, setOurName] = useState("");
+  let [roles, _setRoles] = useState(new Map<string, boolean>());
+  let [ourName, _setOurName] = useState("");
   let [host, setHost] = useState(false);
 
-  socket.on("roles", (data: string, ourName: string) => {
-    console.log("got back", data);
-    setRoles(new Map(JSON.parse(data)));
-    setOurName(ourName);
-  });
+  let ourNameRef = useRef(ourName);
+  let setOurName = (name: string) => {
+    ourNameRef.current = name;
+    _setOurName(name);
+  };
 
-  socket.on("roles_update", (data: string) => {
-    console.log("got update", data);
-    setRoles(new Map(JSON.parse(data)));
-  });
-
-  socket.on("start", () => {
-    setStarted(true);
-    setHost(_.min(Array.from(roles.keys())) == ourName);
-    console.log("I am Host: ", ourName === _.min(Array.from(roles.keys())));
-  });
+  let rolesRef = useRef(roles);
+  let setRoles = (roles: Map<string, boolean>) => {
+    rolesRef.current = roles;
+    _setRoles(roles);
+  };
 
   useEffect(() => {
+    socket.on("roles", (data: string, ourName: string) => {
+      console.log("got back", data);
+      setRoles(new Map(JSON.parse(data)));
+      setOurName(ourName);
+    });
+
+    socket.on("roles_update", (data: string) => {
+      console.log("got update", data);
+      setRoles(new Map(JSON.parse(data)));
+    });
+
+    socket.on("start", () => {
+      let ourName = ourNameRef.current;
+      let roles = rolesRef.current;
+      console.log("Setting Host!", _.min(Array.from(roles.keys())) == ourName);
+      setHost(_.min(Array.from(roles.keys())) == ourName);
+      console.log("I am Host: ", ourName === _.min(Array.from(roles.keys())));
+      setStarted(true);
+    });
+
     socket.emit("get_roles");
   }, []);
 

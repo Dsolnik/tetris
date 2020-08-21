@@ -47,9 +47,17 @@ type Action = {
 
 export const TetrisGame = (props: TetrisGameProps) => {
   let { socket, host } = props;
+  console.log("HOST IS ", host);
   let default_color = props.background_color;
   let empty_cell = props.empty_cell_color;
   let row_count = 22;
+
+  let [dim, _setDim] = useState(!host);
+  let dim_ref = useRef(dim);
+  let setDim = (dim: boolean) => {
+    _setDim(dim);
+    dim_ref.current = dim;
+  };
 
   let [board, setBoard] = useState<Board>(
     create_board(row_count, 10, empty_cell)
@@ -133,6 +141,7 @@ export const TetrisGame = (props: TetrisGameProps) => {
         break;
       case "FIX_PIECE":
         setBoard((board) => fix_piece_on_board(piece, board));
+        setDim(!dim);
         break;
       case "CLEAR_LINE":
         setBoard((board) => clear_row(board, act.data!, empty_cell));
@@ -213,6 +222,10 @@ export const TetrisGame = (props: TetrisGameProps) => {
   useEffect(() => {
     let handleKeyPress = (event: any) => {
       console.log(event.key, "pressed");
+      if (dim_ref.current) {
+        console.log("DIM so NOT PRESSING");
+        return;
+      }
       if (event.key == "ArrowRight") {
         send_action({ op: "PIECE_RIGHT" });
       } else if (event.key == "ArrowLeft") {
@@ -239,6 +252,7 @@ export const TetrisGame = (props: TetrisGameProps) => {
           background_color={default_color}
           unseen_starting_blocks={2}
           piece={piece}
+          dim={dim}
         />
         <TetrisStats score={score} lines_cleared={linesCleared} level={level} />
       </TetrisContainer>

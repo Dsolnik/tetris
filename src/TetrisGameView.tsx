@@ -9,12 +9,14 @@ interface TetrisGameViewProps {
   unseen_starting_blocks: number;
   piece: Piece;
   background_color: Color;
+  dim: boolean;
 }
 export const TetrisGameView = ({
   board,
   unseen_starting_blocks,
   piece,
   background_color,
+  dim,
 }: TetrisGameViewProps) => {
   let locations = piece.get_locations();
   return (
@@ -27,11 +29,12 @@ export const TetrisGameView = ({
             )
               ? piece.color
               : color;
+            if (dim) elem_color = avg_colors(elem_color, background_color);
             return (
               <TetrisBlock
                 key={`${i + 2},${j}`}
                 elem_color={elem_color}
-                border_color={avg_colors(background_color, elem_color)}
+                border_color={avg_colors(background_color, elem_color, 1)}
               />
             );
           })}
@@ -51,19 +54,22 @@ const TetrisContainer = styled.div`
   justify-content: space-evenly;
 `;
 
-const avg_colors = (color: Color, other: Color) => ({
-  red: (color.red + other.red) / 2,
-  green: (color.green + other.green) / 2,
-  blue: (color.blue + other.blue) / 2,
+const avg_colors = (color: Color, other: Color, color_ratio: number = 1) => ({
+  red: (color.red * color_ratio + other.red * (1 / color_ratio)) / 2,
+  green: (color.green * color_ratio + other.green * (1 / color_ratio)) / 2,
+  blue: (color.blue * color_ratio + other.blue * (1 / color_ratio)) / 2,
 });
 
 const rgb = (color: Color) =>
   `rgb(${color.red}, ${color.green}, ${color.blue})`;
 
-const TetrisBlock = styled.div<{ border_color: Color; elem_color: Color }>`
+const TetrisBlock = styled.div<{
+  border_color: Color;
+  elem_color: Color;
+}>`
   background-color: ${(props) => rgb(props.elem_color)};
-  height: 30px;
-  width: 30px;
+  height: 37px;
+  width: 37px;
   display: flex;
   border: 5px solid ${(props) => rgb(props.border_color)};
   overflow: hidden;
